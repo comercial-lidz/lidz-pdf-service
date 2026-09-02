@@ -2,7 +2,7 @@
   "name": "lidz-pdf-service",
   "version": "1.0.0",
   "engines": {
-    "node": "20.x"
+    "node": "24.x"
   },
   "dependencies": {
     "@sparticuz/chromium": "^131.0.1",
