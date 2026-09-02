@@ -1,6 +1,9 @@
 {
   "name": "lidz-pdf-service",
   "version": "1.0.0",
+  "engines": {
+    "node": "20.x"
+  },
   "dependencies": {
     "@sparticuz/chromium": "^131.0.1",
     "puppeteer-core": "^23.9.0",
