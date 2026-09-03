@@ -1,7 +1,6 @@
 const chromium = require('@sparticuz/chromium');
 const puppeteer = require('puppeteer-core');
-const { google } = require('googleapis');
-const { Readable } = require('stream');
+const { GoogleAuth } = require('google-auth-library');
 
 function setCors(res, origin){
   res.setHeader('Access-Control-Allow-Origin', origin || '*');
@@ -41,23 +40,39 @@ module.exports = async (req, res) => {
     browser = null;
 
     const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
-    const auth = new google.auth.GoogleAuth({
+    const auth = new GoogleAuth({
       credentials,
       scopes: ['https://www.googleapis.com/auth/drive']
     });
-    const drive = google.drive({ version: 'v3', auth });
+    const client = await auth.getClient();
+    const { token } = await client.getAccessToken();
 
-    await drive.files.create({
-      requestBody: {
-        name: filename,
-        parents: [process.env.GOOGLE_DRIVE_FOLDER_ID],
-        mimeType: 'application/pdf'
+    const boundary = 'lidzpropuesta' + Date.now();
+    const metadata = {
+      name: filename,
+      parents: [process.env.GOOGLE_DRIVE_FOLDER_ID],
+      mimeType: 'application/pdf'
+    };
+    const base64Data = pdfBuffer.toString('base64');
+    const body =
+      '--' + boundary + '\r\n' +
+      'Content-Type: application/json; charset=UTF-8\r\n\r\n' + JSON.stringify(metadata) + '\r\n' +
+      '--' + boundary + '\r\n' +
+      'Content-Type: application/pdf\r\nContent-Transfer-Encoding: base64\r\n\r\n' + base64Data + '\r\n' +
+      '--' + boundary + '--';
+
+    const uploadRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'multipart/related; boundary="' + boundary + '"'
       },
-      media: {
-        mimeType: 'application/pdf',
-        body: Readable.from(pdfBuffer)
-      }
+      body
     });
+    if(!uploadRes.ok){
+      const texto = await uploadRes.text().catch(() => '');
+      throw new Error('Drive respondió ' + uploadRes.status + ': ' + texto);
+    }
 
     res.status(200).json({ ok: true });
   }catch(err){
