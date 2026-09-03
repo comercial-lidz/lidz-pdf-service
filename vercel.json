@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/generate-pdf.js": {
+      "includeFiles": "node_modules/@sparticuz/chromium/**"
+    }
+  }
+}
